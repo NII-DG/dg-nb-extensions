@@ -1,0 +1,9 @@
+Type: Jupyter Notebook Extension
+Name: NII Data Governance NE
+Section: notebook
+Description: "Jupyter Notebook Extensions for NII Data Governance"
+Link: README.md
+Icon: icon.png
+Main: main.js
+# 1.x means nbclassic - leave 6.x in place just in case.
+Compatibility: 1.x 4.x 5.x 6.x
