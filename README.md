@@ -6,7 +6,7 @@ This Jupyter Notebook extension is an extension package for the Research Workflo
 
 * [Jupyter Notebook](https://github.com/jupyter/notebook) 4.2.x or 5.x
 
-## How to install and Enabling
+## How to Install and Enabling
 
 1. Install the python package
 
