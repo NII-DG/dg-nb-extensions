@@ -1,9 +1,26 @@
 define([
     'base/js/namespace',
-], function(Jupyter) {
+    "base/js/events"
+], function(Jupyter, events) {
+    'use strict';
 
     var mod_name = 'DG_Nb_Extensions';
     var log_prefix = '[' + mod_name + ']';
+
+    function unfreeze_all_cells() {
+        try {
+            Jupyter.notebook.get_cells().forEach(function(cell) {
+                if (cell.metadata.hasOwnProperty('run_through_control') &&
+                    typeof cell.metadata.run_through_control === 'object' &&
+                    cell.metadata.run_through_control !== null &&
+                    cell.metadata.run_through_control.hasOwnProperty('frozen')) {
+                    cell.metadata.run_through_control.frozen = false;
+                }
+            });
+        } catch (e) {
+            outputErr('unfreeze_all_cells: '+error.message);
+        }
+    }
 
     function initializeNotebook() {
         /**
@@ -16,56 +33,58 @@ define([
          * 3. Save the checkpoints.
          * 4. Restart the kernel.
          */
-        var urlParams = new URLSearchParams(window.location.search); // Obtain URL parameters
-
-        var target_param_key =  `init_nb`
-        if (urlParams.get(target_param_key) === 'true') {
-            outputInfo('Execution initialization of Notebook files')
-            // Unfreeze all cells
-            Jupyter.notebook.get_cells().forEach(function(cell) {
-                if (cell.metadata.hasOwnProperty('run_through_control') &&
-                    typeof cell.metadata.run_through_control === 'object' &&
-                    cell.metadata.run_through_control !== null &&
-                    cell.metadata.run_through_control.hasOwnProperty('frozen')) {
-                    cell.metadata.run_through_control.frozen = false;
-                }
-            });
-            // Clear the result output.
-            Jupyter.notebook.clear_all_output();
-            // Save the checkpoints.
-            IPython.notebook.save_checkpoint();
-            // Restart the kernel.
-            Jupyter.notebook.kernel.restart();
-        } else {
-            outputInfo('Unexecution initialization of Notebook files')
-        }
+        events.off("kernel_connected.Kernel", initializeNotebook);
+        outputInfo('Executing notebook initialization process');
+        unfreeze_all_cells();
+        Jupyter.notebook.clear_all_output();
+        Jupyter.notebook.save_notebook().then(
+            Jupyter.notebook.kernel.restart()
+        );
     }
 
     function outputInfo(msg){
         /**
          * Functions for Info log output
          */
-        console.info(`${log_prefix} ${msg}`)
+        console.info(`${log_prefix} ${msg}`);
     }
 
     function outputErr(msg){
         /**
          * Functions for Error log output
          */
-        console.error(`${log_prefix} ${msg}`)
+        console.error(`${log_prefix} ${msg}`);
     }
 
     function outputWarm(msg){
         /**
          * Functions for Warm log output
          */
-        console.warn(`${log_prefix} ${msg}`)
+        console.warn(`${log_prefix} ${msg}`);
+    }
+
+    function load_extension() {
+
+        var urlParams = new URLSearchParams(window.location.search); // Obtain URL parameters
+
+        var target_param_key =  `init_nb`;
+        if (urlParams.get(target_param_key) === 'true') {
+            outputInfo('Notebook initialization required');
+            // Wait for the event to trigger if kernel is unavailable,
+            // otherwise execute immediately
+            events.on("kernel_connected.Kernel", initializeNotebook);
+            if (Jupyter.notebook.kernel) {
+                initializeNotebook()
+            }
+
+        } else {
+            outputInfo('Notebook initialization not required');
+        }
     }
 
     return {
-        load_ipython_extension: function() { // Functions for loading extensions
-            initializeNotebook();
-        }
+        load_ipython_extension: load_extension,
+        load_jupyter_extension: load_extension
     };
 
 });
